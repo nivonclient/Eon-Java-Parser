@@ -26,9 +26,9 @@ import java.util.Set;
 /// of an Eon document as key -> value, where value can be normal Java thing like String,
 /// Long, Double, Boolean, List, another map inside, or [Variant].
 ///
-/// Also, this class don't make you write try/catch for [EonError] or [IOException] all the
-/// time. If something go wrong, it just throw [EonError], which is unchecked, so
-/// your code can stay simple.
+/// If something go wrong (bad path, wrong type, file problem, parse problem), this class
+/// will throw [EonError]. Since [EonError] is a `RuntimeException`, you don't have to write
+/// try/catch everywhere just to use this class.
 ///
 /// You can also use key with dot inside, like `"server.address.port"`, and it will go
 /// inside the nested map for you automatically.
@@ -61,16 +61,14 @@ import java.util.Set;
 /// give you the same [TokenTree] that the low level part of the library use.
 public final class SimpleEon {
 
-    private final TokenTree root; // root.value should always be a TokenValue.MapValue
+    private final TokenTree root; /// root.value should always be a TokenValue.MapValue
     private FormatOptions formatOptions = new FormatOptions();
 
     private SimpleEon(TokenTree root) {
         this.root = root;
     }
 
-    // ======================================================================
     // Creation
-    // ======================================================================
 
     /// Make a new document, with nothing inside yet.
     public static SimpleEon create() {
@@ -80,14 +78,9 @@ public final class SimpleEon {
     /// Read an Eon text and turn it into a document. Remember, the top level part of the
     /// text need to be a map, not a list or a single value.
     public static SimpleEon parse(String source) {
-        TokenTree tree;
-        try {
-            tree = Eon.parse(source);
-        } catch (EonError e) {
-            throw new SimpleEonException("Failed to parse Eon source: " + e.getMessage(), e);
-        }
+        TokenTree tree = Eon.parse(source);
         if (!(tree.value instanceof TokenValue.MapValue)) {
-            throw new SimpleEonException(
+            throw EonError.custom(
                     "SimpleEon only supports documents whose top level is a map (key: value pairs). "
                             + "For a top-level list/value/variant, use com.eon.Eon.parse(...) directly.");
         }
@@ -100,7 +93,7 @@ public final class SimpleEon {
         try {
             text = Files.readString(path);
         } catch (IOException e) {
-            throw new SimpleEonException("Failed to read " + path, e);
+            throw EonError.custom("Failed to read " + path, e);
         }
         return parse(text);
     }
@@ -117,9 +110,7 @@ public final class SimpleEon {
         return create().setAll(data);
     }
 
-    // ======================================================================
     // Reading
-    // ======================================================================
 
     /// Tell you `true` when there is something at that path (the path can have dot inside,
     /// like `"a.b.c"`, to go into nested map).
@@ -230,7 +221,7 @@ public final class SimpleEon {
                 putInMap(currentMap, part, child);
                 current = child;
             } else {
-                throw new SimpleEonException("Key '" + part + "' in path '" + path + "' is not a map");
+                throw EonError.custom("Key '" + part + "' in path '" + path + "' is not a map");
             }
         }
         return new SimpleEon(current);
@@ -331,7 +322,7 @@ public final class SimpleEon {
         try {
             Files.writeString(path, toText());
         } catch (IOException e) {
-            throw new SimpleEonException("Failed to write " + path, e);
+            throw EonError.custom("Failed to write " + path, e);
         }
     }
 
@@ -344,8 +335,8 @@ public final class SimpleEon {
         return toText();
     }
 
-    /// If you need more than this class can give you (like comment on a value, or the
-    /// position inside the text) this method let you go down to the full, low level tree
+    /// If you need more than this class can give you — like comment on a value, or the
+    /// position inside the text — this method let you go down to the full, low level tree
     /// that this class is built on top of.
     public TokenTree rawTree() {
         return root;
@@ -381,7 +372,7 @@ public final class SimpleEon {
 
     /// Put `key -> value` inside the map. If the key already there, we just change the
     /// value on the spot, so any comment that was already on that entry stay how it was.
-    /// If the key is new, we add it at the end
+    /// If the key is new, we add it at the end.
     private static void putInMap(TokenMap map, String key, TokenTree valueTree) {
         for (TokenKeyValue kv : map.keyValues()) {
             if (keyMatches(kv.key(), key)) {
@@ -417,11 +408,11 @@ public final class SimpleEon {
     private Object require(String path, Class<?> type) {
         TokenTree leaf = findLeaf(path);
         if (leaf == null) {
-            throw new SimpleEonException("Missing key: '" + path + "'");
+            throw EonError.custom("Missing key: '" + path + "'");
         }
         Object value = toObject(leaf.value);
         if (!type.isInstance(value)) {
-            throw new SimpleEonException("Key '" + path + "' is not a " + type.getSimpleName()
+            throw EonError.custom("Key '" + path + "' is not a " + type.getSimpleName()
                     + " (was " + (value == null ? "null" : value.getClass().getSimpleName()) + ")");
         }
         return value;
@@ -434,7 +425,7 @@ public final class SimpleEon {
         return out;
     }
 
-    /// turn a TokenValue into a normal Java object
+    /// turn a TokenValue into a normal Java object 
 
     private static Object toObject(TokenValue value) {
         if (value instanceof TokenValue.Identifier id) {
@@ -442,7 +433,7 @@ public final class SimpleEon {
                 case "true" -> Boolean.TRUE;
                 case "false" -> Boolean.FALSE;
                 case "null" -> null;
-                default -> id.slice(); // just a plain identifier without quote: give the text back
+                default -> id.slice(); /// just a plain identifier without quote: give the text back
             };
         } else if (value instanceof TokenValue.Number num) {
             return parseNumber(num.slice());
@@ -450,7 +441,7 @@ public final class SimpleEon {
             try {
                 return Strings.unescapeAndUnquote(qs.slice());
             } catch (EonError e) {
-                throw new SimpleEonException("Invalid string literal: " + qs.slice(), e);
+                throw EonError.custom("Invalid string literal: " + qs.slice(), e);
             }
         } else if (value instanceof TokenValue.ListValue lv) {
             List<Object> list = new ArrayList<>();
@@ -476,9 +467,9 @@ public final class SimpleEon {
         throw new IllegalStateException("Unhandled TokenValue: " + value);
     }
 
-    // try to read the number text as Long first, then Double, and if none of them work,
-    // we just give the original text back — better than throwing an error for something
-    // small like this
+    /// try to read the number text as Long first, then Double, and if none of them work,
+    /// we just give the original text back — better than throwing an error for something
+    /// small like this
     private static Object parseNumber(String slice) {
         String s = slice.replace("_", "");
         boolean neg = s.startsWith("-");
@@ -501,18 +492,18 @@ public final class SimpleEon {
             try {
                 return Double.parseDouble(s);
             } catch (NumberFormatException e2) {
-                return slice; // this text is not really a number we know, so just keep it as it is
+                return slice; /// this text is not really a number we know, so just keep it as it is
             }
         }
     }
 
-    // ---- turn a normal Java object into a TokenValue ----
+    /// turn a normal Java object into a TokenValue 
 
     private static TokenValue toTokenValue(Object value) {
         if (value == null) {
             return new TokenValue.Identifier("null");
         } else if (value instanceof TokenValue tv) {
-            return tv; // in case someone already has a TokenValue and want to use it directly
+            return tv; /// in case someone already has a TokenValue and want to use it directly
         } else if (value instanceof Boolean b) {
             return new TokenValue.Identifier(b ? "true" : "false");
         } else if (value instanceof Ident ident) {
@@ -551,7 +542,7 @@ public final class SimpleEon {
             for (int i = 0; i < len; i++) boxed.add(Array.get(value, i));
             return toTokenValue(boxed);
         } else {
-            throw new SimpleEonException("Unsupported value type for set(): " + value.getClass());
+            throw EonError.custom("Unsupported value type for set(): " + value.getClass());
         }
     }
 }
