@@ -18,7 +18,7 @@ public class Main {
         Path outputPath = Path.of("config_out.eon");
 
         /// Identifier & Number
-        TokenKeyValue nameKv = kv("name", new TokenValue.QuotedString(Strings.escapeAndQuote("You")));
+        TokenKeyValue nameKv = kv("name", new TokenValue.Identifier("You"));
         TokenKeyValue ageKv = kv("age", new TokenValue.Number("30"));
         TokenKeyValue activeKv = kv("active", new TokenValue.Identifier("true"));
 

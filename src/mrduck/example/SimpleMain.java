@@ -13,13 +13,11 @@ public class SimpleMain {
         // Build the config with set()
         /// Dot paths can also be used to create nested maps automatically.
         SimpleEon config = SimpleEon.create()
-                .set("name", "You")
+                .set("name", Ident.of("You"))                                /// writes without quotes
                 .set("age", 30)
-                .set("score", 9.5)
                 .set("active", true)
-                .set("status", Ident.of("Active"))            /// writes without quotes
                 .set("tags", List.of(1, 2, 3))
-                .set("address.city", "Whenre")                      /// creates "address" automatically
+                .set("address.city", "Where")                      /// creates "address" automatically
                 .set("address.zip", 70000)
                 .set("color", Variant.of("Rgb", 255, 0, 0));
 
