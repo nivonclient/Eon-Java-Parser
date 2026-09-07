@@ -4,6 +4,6 @@ active: true
 tags: [1, 2, 3]
 address: {
 	city: "Where"
-	zip: 00000
+	zip: 0
 }
-color: Rgb(255, 0, 0)
+color: "Rgb"(255, 0, 0)

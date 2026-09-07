@@ -1,11 +1,14 @@
 package com.eon;
 
-
-/// An error that can occur during parsing of an Eon file.
-public final class EonError extends Exception {
+/// An error that can occur during parsing of an Eon file
+public final class EonError extends RuntimeException {
 
     private EonError(String source, Span span, String msg) {
         super(render(source, span, msg));
+    }
+
+    private EonError(String source, Span span, String msg, Throwable cause) {
+        super(render(source, span, msg), cause);
     }
 
     public static EonError custom(String message) {
@@ -33,7 +36,7 @@ public final class EonError extends Exception {
         int lineEndSearch = source.indexOf('\n', span.start());
         int lineEnd = lineEndSearch == -1 ? source.length() : lineEndSearch;
 
-        // Compute 1-based line/column of the span start.
+        // Compute 1-based line/column of the span start
         int line = 1;
         for (int i = 0; i < lineStart; i++) {
             if (source.charAt(i) == '\n') line++;
@@ -50,8 +53,7 @@ public final class EonError extends Exception {
         String pad = " ".repeat(lineNoStr.length());
         sb.append(pad).append(" |\n");
         sb.append(lineNoStr).append(" | ").append(lineText).append('\n');
-        sb.append(pad).append(" | ").append(" ".repeat(Math.max(0, col - 1)))
-          .append("^".repeat(caretLen)).append(' ').append(msg);
+        sb.append(pad).append(" | ").repeat(" ", Math.max(0, col - 1)).repeat("^", caretLen).append(' ').append(msg);
         return sb.toString();
     }
 

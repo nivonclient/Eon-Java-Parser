@@ -18,7 +18,7 @@ public class SimpleMain {
                 .set("active", true)
                 .set("tags", List.of(1, 2, 3))
                 .set("address.city", "Where")                      /// creates "address" automatically
-                .set("address.zip", 70000)
+                .set("address.zip", 00000)
                 .set("color", Variant.of("Rgb", 255, 0, 0));
 
         Path out = Path.of("config_out_simple.eon");
@@ -33,9 +33,7 @@ public class SimpleMain {
         System.out.println("typed getters");
         System.out.println("name = " + loaded.getString("name"));
         System.out.println("age = " + loaded.getInt("age"));
-        System.out.println("score = " + loaded.getDouble("score"));
         System.out.println("active = " + loaded.getBoolean("active"));
-        System.out.println("status = " + loaded.getString("status"));
         System.out.println("tags = " + loaded.getLongList("tags"));
         System.out.println("address.city (dot-path) = " + loaded.getString("address.city"));
         System.out.println("missing.key default = " + loaded.getString("missing.key", "fallback"));
