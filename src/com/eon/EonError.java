@@ -15,6 +15,13 @@ public final class EonError extends RuntimeException {
         return new EonError(null, null, message);
     }
 
+    /// Same as [#custom(String)], but also keep the original exception as the cause, so you
+    /// don't lose it (for example, when you catch an `IOException` and want to turn it into
+    /// an `EonError` without throwing away the original stack trace)
+    public static EonError custom(String message, Throwable cause) {
+        return new EonError(null, null, message, cause);
+    }
+
     public static EonError at(String eonSource, Span span, String message) {
         return new EonError(eonSource, span, message);
     }
