@@ -24,13 +24,13 @@ public class SimpleMain {
         Path out = Path.of("config_out_simple.eon");
         config.save(out);
 
-        System.out.println("===== config_out.eon =====");
+        System.out.println("config_out.eon");
         System.out.println(config.toText());
 
         // Load it back
         SimpleEon loaded = SimpleEon.load(out);
 
-        System.out.println("===== Typed getters =====");
+        System.out.println("typed getters");
         System.out.println("name = " + loaded.getString("name"));
         System.out.println("age = " + loaded.getInt("age"));
         System.out.println("score = " + loaded.getDouble("score"));
